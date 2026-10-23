@@ -26,7 +26,7 @@ FORMATOS_DATA = ["%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y", "%Y/%m/%d", "%Y
 # ---------------------------------------------------------------------------------------------
 def remover_invisiveis(texto):
     """PRONTA (so leia). Apaga caracteres invisiveis de largura zero que vem de sistemas antigos."""
-    for c in ["​", "‌", "‍", "﻿"]:
+    for c in ["​", "‌", "‍", ""]:
         texto = texto.replace(c, "")
     return texto
 
@@ -41,10 +41,10 @@ def consertar_acento(texto):
 
 
 def tirar_espacos(texto):
-    """Tira espacos das pontas e espacos repetidos.   '  Ana   Maria ' -> 'Ana Maria'  (  e o espaco 'sem quebra')."""
+    """Tira espacos das pontas e espacos repetidos.   '   Ana   Maria ' -> 'Ana Maria'  ( e o espaco 'sem quebra')."""
     # DICA: texto.split() separa o texto em palavras, em QUALQUER espaco (inclusive o 'sem quebra')
     # COMPLETE: junte as palavras de volta com UM unico espaco entre elas (" ".join(...))
-    return ____
+    return " ".join(texto.split())
 
 
 def eh_nulo(texto, zero_eh_nulo=True):
@@ -55,9 +55,9 @@ def eh_nulo(texto, zero_eh_nulo=True):
         return True
     if chave == "0":
         # COMPLETE: devolva o que diz se o zero conta como nulo neste campo (o parametro da funcao)
-        return ____
+        return zero_eh_nulo
     # COMPLETE: o texto e nulo se a chave estiver no conjunto NULOS
-    return ____
+    return chave in NULOS
 
 
 def limpar_texto(texto, zero_eh_nulo=True):
@@ -67,9 +67,9 @@ def limpar_texto(texto, zero_eh_nulo=True):
     texto = remover_invisiveis(texto)
     texto = consertar_acento(texto.strip(" "))
     # COMPLETE: chame tirar_espacos(texto)
-    texto = ____
+    texto = tirar_espacos(texto)
     # COMPLETE: se o texto for nulo (use eh_nulo, passando o zero_eh_nulo), devolva None
-    if ____:
+    if eh_nulo(texto, zero_eh_nulo):
         return None
     return texto
 
@@ -81,9 +81,9 @@ def padronizar_nome(texto):
     if texto is None:
         return None
     # COMPLETE: coloque em maiusculas (metodo .upper())
-    texto = texto.____
+    texto = texto.upper()
     # COMPLETE: troque cada "-" por " - " (o tirar_espacos abaixo arruma os espacos repetidos)
-    texto = ____
+    texto = texto.replace("-", " - ")
     return tirar_espacos(texto)
 
 
@@ -92,35 +92,35 @@ def padronizar_nome(texto):
 # ---------------------------------------------------------------------------------------------
 def limpar_documento(texto, tipo_pessoa=None):
     """Deixa so os digitos do CNPJ/CPF, com os zeros da esquerda de volta.
-       '11.222.333/0001-81' (PJ) -> '11222333000181'     '1222333000181' (PJ, perdeu o zero) -> '01222333000181'
-       '1234567890' (PF)         -> '01234567890'        'ABC123' (PE, estrangeiro) -> 'ABC123' (nao mexa)
-       Se vier lixo ('N/A', '-') ou digitos demais, devolva None.   tipo_pessoa: 'PJ', 'PF', 'PE' ou None."""
+        '11.222.333/0001-81' (PJ) -> '11222333000181'     '1222333000181' (PJ, perdeu o zero) -> '01222333000181'
+        '1234567890' (PF)         -> '01234567890'        'ABC123' (PE, estrangeiro) -> 'ABC123' (nao mexa)
+        Se vier lixo ('N/A', '-') ou digitos demais, devolva None.   tipo_pessoa: 'PJ', 'PF', 'PE' ou None."""
     texto = limpar_texto(texto)
     if texto is None:
         return None
     if tipo_pessoa == "PE":
         return texto.upper()
     # COMPLETE: fique so com os caracteres que sao digitos:  "".join(c for c in texto if c.isdigit())
-    digitos = ____
+    digitos = "".join(c for c in texto if c.isdigit())
     if digitos == "":
         return None
     if tipo_pessoa == "PJ":
         tamanho = 14
     elif tipo_pessoa == "PF":
         tamanho = 11
-    else:                                    # sem o tipo: mais de 11 digitos e CNPJ, senao CPF
+    else:                               # sem o tipo: mais de 11 digitos e CNPJ, senao CPF
         tamanho = 14 if len(digitos) > 11 else 11
     if len(digitos) > tamanho:               # digitos demais: documento impossivel
         return None
     # COMPLETE: complete com zeros a esquerda ate o tamanho certo (metodo .zfill(tamanho))
-    return digitos.____
+    return digitos.zfill(tamanho)
 
 
 # ---------------------------------------------------------------------------------------------
 # 3) DINHEIRO E NUMEROS EM TEXTO
 # ---------------------------------------------------------------------------------------------
 def converter_numero(texto):
-    """'R$ 1.234,56' -> 1234.56      '1,234.56' -> 1234.56      '0,754' -> 0.754      '(1.500,00)' -> -1500.0
+    """'R$ 1.234,56' -> 1234.56     '1,234.56' -> 1234.56     '0,754' -> 0.754     '(1.500,00)' -> -1500.0
     REGRA DESTA BASE: ponto OU virgula SOZINHO e sempre o DECIMAL ('1.234' -> 1.234; '746.815' -> 746.815).
     So o simbolo REPETIDO e milhar ('1.234.567' -> 1234567). Quando aparecem os dois, o ULTIMO e o decimal.
     Devolve None se nao der para converter ('N/A', vazio). O zero e um numero valido (0 -> 0.0)."""
@@ -129,32 +129,32 @@ def converter_numero(texto):
         return None
     texto = texto.replace("R$", "").replace(" ", "")
     # COMPLETE: e negativo se comecar com "(" ou com "-", ou se terminar com "-":  (1.500,00)  -12,50  1.500,00-
-    negativo = ____
+    negativo = texto.startswith("(") or texto.startswith("-") or texto.endswith("-")
     texto = texto.strip("()-")
     if "." in texto and "," in texto:
         if texto.rfind(",") > texto.rfind("."):
             # formato 1.234,56 (a virgula vem por ultimo). COMPLETE: tire os pontos e troque a virgula por ponto
-            texto = ____
+            texto = texto.replace(".", "").replace(",", ".")
         else:
             # formato 1,234.56 (o ponto vem por ultimo). COMPLETE: tire as virgulas
-            texto = ____
+            texto = texto.replace(",", "")
     elif "," in texto:
         if texto.count(",") > 1:
             # 1,234,567 (virgula repetida = milhar). COMPLETE: tire as virgulas
-            texto = ____
+            texto = texto.replace(",", "")
         else:
             # 12,5 (virgula sozinha = decimal). COMPLETE: troque a virgula por ponto
-            texto = ____
+            texto = texto.replace(",", ".")
     elif texto.count(".") > 1:
         # 1.234.567 (ponto repetido = milhar). COMPLETE: tire os pontos
-        texto = ____
+        texto = texto.replace(".", "")
     # (ponto sozinho, como em 1234.56 ou 746.815, ja e decimal: nao precisa mexer)
     try:
         numero = float(texto)
     except ValueError:
         return None
     # COMPLETE: se for negativo, devolva o numero com sinal de menos; senao, o proprio numero
-    return ____
+    return -numero if negativo else numero
 
 
 # ---------------------------------------------------------------------------------------------
@@ -167,19 +167,18 @@ def converter_data(texto):
     if texto is None:
         return None
     # COMPLETE: fique so com os 10 primeiros caracteres (o texto[:10] descarta a hora)
-    texto = texto[:____]
+    texto = texto[:10]
     for formato in FORMATOS_DATA:
         try:
             # COMPLETE: strptime le o texto no formato; .date() tira a hora. Use datetime.strptime(texto, formato).date()
-            data = ____
+            data = datetime.strptime(texto, formato).date()
         except ValueError:
-            continue                          # nao era esse formato: tente o proximo
+            continue                    # nao era esse formato: tente o proximo
         # COMPLETE: so vale se o ano estiver entre 2000 e 2030 (use data.year)
-        if ____:
+        if 2000 <= data.year <= 2030:
             return data
         return None
     return None
-
 
 # =============================================================================================
 # AUTOTESTE: python -m src.limpeza     (nao precisa mexer daqui para baixo)
