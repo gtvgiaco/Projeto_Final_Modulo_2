@@ -1,6 +1,6 @@
 CREATE DATABASE IF NOT EXISTS pncp_controladoria;
-USE pncp_controladoria;
 
+USE pncp_controladoria;
 SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS fato_item_contratado;
@@ -45,18 +45,18 @@ CREATE TABLE fato_item_contratado (
     sk_fornecedor INT,
     sk_modalidade INT,
     sk_localidade INT,
-    data_publicacao DATE,
-    data_homologacao DATE,
+    data_publicacao DATE NOT NULL,
+    data_homologacao DATE NULL,  #NULL se a regra 7 anula a homologacao
     descricao_item TEXT,
-    perfil_gasto VARCHAR(50),
-    quantidade DECIMAL(18,4) CHECK (quantidade > 0),
-    valor_unitario_estimado DECIMAL(18,4),
-    valor_total_estimado DECIMAL(18,2),
-    valor_unitario_homologado DECIMAL(18,4),
-    valor_total_homologado DECIMAL(18,2) CHECK (valor_total_homologado >= 0),
+    perfil_gasto VARCHAR(50) NOT NULL,
+    quantidade DECIMAL(18,4) NOT NULL CHECK (quantidade > 0), #a fato não aceita quantidade ≤ 0 nem valores negativos 
+    valor_unitario_estimado DECIMAL(18,4) NOT NULL CHECK (valor_unitario_estimado >=0),
+    valor_total_estimado DECIMAL(18,2) NOT NULL CHECK (valor_total_estimado >=0),
+    valor_unitario_homologado DECIMAL(18,4) NOT NULL CHECK (valor_unitario_homologado >=0),
+    valor_total_homologado DECIMAL(18,2) NOT NULL CHECK (valor_total_homologado >= 0),
     comparavel TINYINT,
-    economia_valor DECIMAL(18,2),
-    dias_ciclo INT,
+    economia_valor DECIMAL(18,2) NULL, #NULL nos itens nao comparaveis 
+    dias_ciclo INT NULL, #NULL se a regra 7 anula a homologacao
     UNIQUE KEY uk_pncp_item (numero_controle_pncp, numero_item),
     FOREIGN KEY (sk_orgao) REFERENCES dim_orgao(sk_orgao),
     FOREIGN KEY (sk_fornecedor) REFERENCES dim_fornecedor(sk_fornecedor),
@@ -64,7 +64,6 @@ CREATE TABLE fato_item_contratado (
     FOREIGN KEY (sk_localidade) REFERENCES dim_localidade(sk_localidade)
 );
 
--- Exemplo para inserir a linha -1 nas dimensões
 INSERT INTO dim_orgao (sk_orgao, cnpj_orgao, nome_orgao, poder) 
 VALUES (-1, '00000000000000', 'Não informado', 'Não informado' );
 
@@ -76,5 +75,7 @@ VALUES (-1, -1, 'Não informado');
 
 INSERT INTO dim_localidade (sk_localidade, uf_sigla, uf_nome, regiao) 
 VALUES (-1, 'NI', 'Não informado', 'Não informado');	 
+
+
 
 SET FOREIGN_KEY_CHECKS = 1;
