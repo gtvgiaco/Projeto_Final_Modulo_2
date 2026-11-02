@@ -70,6 +70,7 @@ python -m src.carregar     		 # criação do banco de dados e carregamento das t
 - Abra o arquivo sql/02_perguntas.sql no MySQL e rode os selects, um por vez, no banco pncp_controladoria.
 
 ### 3.5 Abertura do Painel Power BI:
+
 - Instale o conector no MySQL: MySQL Connector/NET 8.
 
 - Abra o arquivo .pbix em powerbi/dashboard no Power BI Desktop.
@@ -83,7 +84,7 @@ python -m src.carregar     		 # criação do banco de dados e carregamento das t
 
 O projeto foi dividido em 5 sripnts, conforme a imagem abaixo.
 
-![alt text](sprints.png)
+![sprints](./docs/image/sprints.png)
 
 ## 5. Diagnóstico Inicial
 
@@ -91,21 +92,21 @@ Para responder as perguntas do item 7.4 do enunciado, usamos o auditoria.py . Ab
 
 - Quantas linhas tem cada arquivo? Há numero_controle_pncp repetido em compras.csv?
 
-![alt text](image-5.png)
+![diag1](./docs/image/diag1.png)
 
 - Que formatos de dinheiro, de data e de CNPJ aparecem? Quais colunas têm N/A, -, 0, vazio?
 
-![alt text](image-6.png)
+![diag2](./docs/image/diag2.png)
 
-![alt text](image-7.png)
+![diag3](./docs/image/diag3.png)
 
 - Existe texto com acento quebrado (Ã§, Ã£)? Em quais colunas?
 
-![alt text](image-8.png)
+![diag4](./docs/image/diag4.png)
 
 - Existe data_resultado anterior a data_publicacao?
 
-![alt text](image-10.png)
+![diag5](./docs/image/diag5.png)
 
 
 ## 6. Limpeza dos arquivos brutos
@@ -167,9 +168,10 @@ Etapas:
 5. **Registros de Fallback (`-1`):** Insere registros coringa (`-1`) em todas as dimensões para garantir a integridade de dados caso algum registro da fato não possua correspondência direta.
 
 
-**Modelo Star Schema
-**
+**Modelo Star Schema**
+
 ![alt text](star_schema-1.png)
+
 
 ## 9. Power BI
 
@@ -179,23 +181,47 @@ Todas as medidas obrigatórias foram centralizadas em uma tabela dedicada (chama
 
 ### Tabela de Resumo das 15 Medidas Obrigatórias
 
-| Pasta  |  Nome  | O que calcula |
-| :--- | :---: | :--- | :--- |
-| **P1 Economia** |  `valor_estimado_comparavel` | Soma do valor estimado só dos itens comparáveis. |
-| **P1 Economia** |  `volume_homologado` | Soma do valor total homologado de todos os itens. |
-| **P1 Economia** |  `economia(R$)` | Estimado comparável − homologado dos itens comparáveis. |
-| **P1 Economia** |  `economia(%)` | Economia (R$) ÷ Valor Estimado Comparável. |
-| **P1 Economia** |  `%_itens_comparaveis` | Itens comparáveis ÷ total de itens. |
-| **P2 Fornecedores** |  `participação_fornecedor(%)` | Volume do fornecedor ÷ volume total (ignorando filtros). |
-| **P2 Fornecedores** |  `ranking_fornecedor` | Posição do fornecedor por volume (1º, 2º, 3º…). |
-| **P2 Fornecedores** |  `top_10_fornecedores%` | Volume dos 10 maiores fornecedores ÷ volume total. |
-| **P3 Modalidades** |  `participaçã_volume(%)` | Volume da linha atual ÷ volume total. |
-| **P3 Modalidades** |  `desagio_vs_media_geral` | Economia % da linha atual − Economia % geral (em pontos percentuais). |
-| **P4 Ciclo** |  `ciclo_medio(dias)` | Média dos dias entre publicação e homologação (ignora vazios). |
-| **P4 Ciclo** |  `ciclo_maximo(dias)` | Maior ciclo observado. |
-| **P4 Ciclo** |  `iens_sem_ciclo` | Total de itens − itens com ciclo. |
+| Pasta | Nome | O que calcula |
+| :--- | :--- | :--- |
+| **P1 Economia** | `valor_estimado_comparavel` | Soma do valor estimado só dos itens comparáveis. |
+| **P1 Economia** | `volume_homologado` | Soma do valor total homologado de todos os itens. |
+| **P1 Economia** | `economia(R$)` | Estimado comparável − homologado dos itens comparáveis. |
+| **P1 Economia** | `economia(%)` | Economia (R$) ÷ Valor Estimado Comparável. |
+| **P1 Economia** | `%_itens_comparaveis` | Itens comparáveis ÷ total de itens. |
+| **P2 Fornecedores** | `participação_fornecedor(%)` | Volume do fornecedor ÷ volume total (ignorando filtros). |
+| **P2 Fornecedores** | `ranking_fornecedor` | Posição do fornecedor por volume (1º, 2º, 3º…). |
+| **P2 Fornecedores** | `top_10_fornecedores%` | Volume dos 10 maiores fornecedores ÷ volume total. |
+| **P3 Modalidades** | `participaçã_volume(%)` | Volume da linha atual ÷ volume total. |
+| **P3 Modalidades** | `desagio_vs_media_geral` | Economia % da linha atual − Economia % geral (em pontos percentuais). |
+| **P4 Ciclo** | `ciclo_medio(dias)` | Média dos dias entre publicação e homologação (ignora vazios). |
+| **P4 Ciclo** | `ciclo_maximo(dias)` | Maior ciclo observado. |
+| **P4 Ciclo** | `iens_sem_ciclo` | Total de itens − itens com ciclo. |
 | **P5 Regional** | `qtd_unidades_compradoras` | Número de CNPJs de órgão distintos. |
 | **P6 Perfil** | `ticket_medio_por_item(R$)` | Valor médio por item vendido. |
 
 ## DASHBOARD
+
+1 Economia
+
+![dash1economia](./docs/image/dash1economia.png)
+
+2 Fornecedores
+
+![dash2fornecedores](./docs/image/dash2fornecedores.png)
+
+3 Modalidades
+
+![dash3modalidades](./docs/image/dash3modalidades.png)
+
+4 Ciclo
+
+![dash4ciclo](./docs/image/dash4ciclo.png)
+
+5 Regional
+
+![dash5regional](./docs/image/dash5regional.png)
+
+6 Perfil
+
+![dash6perfil](./docs/image/dash6perfil.png)
 
