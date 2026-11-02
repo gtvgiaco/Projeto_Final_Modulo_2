@@ -1,5 +1,8 @@
-import pandas as pd
 from pathlib import Path
+import pandas as pd
+import config
+import limpeza
+
 
 def limpar_str(valor):
     """Garante que o valor é string tratada sem espaços nas pontas."""
@@ -13,7 +16,6 @@ def classificar_cnpj(valor):
     if v == "" or v in ["-", "N/A", "NA", "NULL", "0"]:
         return "vazio / nulo / traço"
     
-    # Sem regex: separa dígitos de caracteres de máscara manualmente
     apenas_digitos = ""
     tem_mascara = False
     for char in v:
@@ -51,23 +53,55 @@ def classificar_dinheiro(valor):
 
 
 def classificar_data(valor):
-    v = limpar_str(valor)
-    if v == "" or v in ["-", "N/A", "NA", "NULL"]:
+    t = limpar_str(valor)
+    if not t or t in ["-", "N/A", "NA", "NULL"]:
         return "vazio / nulo"
     
-    if "-" in v and "T" in v:
+    # Valida usando o conversor seguro do módulo de limpeza
+    if limpeza.converter_data(t) is None:
+        return "Data inválida ou fora do intervalo"
+    
+    # Identificação exata dos formatos exibidos no padrão desejado
+    if "-" in t and "T" in t:
         return "AAAA-MM-DDTHH:MM:SS"
-    elif "-" in v:
-        return "AAAA-MM-DD (com hífen)"
-    elif "/" in v and ":" in v:
+    elif "/" in t and ":" in t:
         return "DD/MM/AAAA com hora"
-    elif "/" in v:
+    elif "/" in t:
         return "DD/MM/AAAA (com barra)"
-    elif "." in v:
+    elif "-" in t:
+        return "AAAA-MM-DD (com hífen)"
+    elif "." in t:
         return "DD.MM.AAAA (com ponto)"
-    elif v.isdigit() and len(v) == 8:
+    elif t.isdigit() and len(t) == 8:
         return "AAAAMMDD (padrão compacto)"
     return "Outro formato de data"
+
+def secao_cronologia(compras, resultados):
+    print("\n[8] CRONOLOGIA: data_resultado x data_publicacao (Universo Total):")
+    
+    # Mapeia a publicação utilizando a função oficial de conversão do colega
+    publicacao = (
+        compras.drop_duplicates(subset=["numero_controle_pncp"])
+        .set_index("numero_controle_pncp")["data_publicacao"]
+        .map(limpeza.converter_data)
+    )
+    
+    r = resultados.copy()
+    r["pub"] = pd.to_datetime(r["numero_controle_pncp"].map(publicacao))
+    r["res"] = pd.to_datetime(r["data_resultado"].map(limpeza.converter_data))
+    
+    if "data_cancelamento" in r.columns:
+        cancelado = r["data_cancelamento"].map(limpar_str) != ""
+    else:
+        cancelado = pd.Series([False] * len(r))
+    
+    for nome, parte in [("todos os resultados", r), ("so resultados nao cancelados", r[~cancelado])]:
+        sem_data = parte["res"].isna() | parte["pub"].isna()
+        print(f"    {nome} ({len(parte)}):")
+        print(f"       sem data valida (resultado ou publicacao): {sem_data.sum()}")
+        print(f"       homologacao ANTERIOR a publicacao (impossivel): {(parte['res'] < parte['pub']).sum()}")
+        print(f"       homologacao no mesmo dia da publicacao (valida, ciclo 0): {(parte['res'] == parte['pub']).sum()}")
+        print(f"       homologacao posterior a publicacao: {(parte['res'] > parte['pub']).sum()}")
 
 
 def rodar_auditoria():
@@ -75,44 +109,42 @@ def rodar_auditoria():
     print("INICIANDO AUDITORIA DE DADOS")
     print("=" * 60)
     
-    # 1. Contagem de linhas de cada arquivo raw
+    # 1. Carregamento dos dados
     print("\n[1] CONTAGEM DE LINHAS DE CADA ARQUIVO RAW:")
-    arquivos = ["compras", "itens", "resultados"]
     tabelas = {}
-    
-    for nome in arquivos:
+    for nome in ["compras", "itens", "resultados"]:
         caminho = Path(f"data/raw/{nome}.csv")
         try:
             df = pd.read_csv(caminho, dtype=str, keep_default_na=False)
             tabelas[nome] = df
             print(f"  - {nome}.csv: {len(df)} linhas")
         except FileNotFoundError:
-            print(f"  - {nome}.csv: Arquivo não encontrado no caminho data/raw/")
+            print(f"  - {nome}.csv: Arquivo não encontrado")
             tabelas[nome] = pd.DataFrame()
 
     compras = tabelas.get("compras")
     resultados = tabelas.get("resultados")
     
     if compras.empty:
-        print("\nErro: O arquivo compras.csv é obrigatório para continuar a auditoria.")
+        print("\nErro: O arquivo compras.csv é obrigatório.")
         return
 
-    # 2. Verificação de chaves repetidas (número de controle PNCP)
+    # 2. Chaves repetidas
     print("\n[2] VERIFICAÇÃO DE CHAVES REPETIDAS EM COMPRAS:")
     if 'numero_controle_pncp' in compras.columns:
         duplicados = compras['numero_controle_pncp'].duplicated().sum()
-        print(f"  - 'numero_controle_pncp' repetidos em compras.csv: {duplicados} registros")
+        print(f"  - 'numero_controle_pncp' repetidos: {duplicados} registros")
 
-    # 3. Contagem de formatos de CNPJ
+    # 3. CNPJ
     print("\n[3] FORMATOS E CONTAGEM DE CNPJ (cnpj_orgao):")
     print(compras['cnpj_orgao'].map(classificar_cnpj).value_counts())
 
-    # 4. Contagem de formatos de Dinheiro
+    # 4. Dinheiro
     if 'valor_total_homologado' in compras.columns:
         print("\n[4] FORMATOS E CONTAGEM DE DINHEIRO (valor_total_homologado):")
         print(compras['valor_total_homologado'].map(classificar_dinheiro).value_counts())
 
-    # 5. Contagem de formatos de Data
+    # 5. Datas
     if 'data_publicacao' in compras.columns:
         print("\n[5] FORMATOS E CONTAGEM DE DATAS (data_publicacao):")
         print(compras['data_publicacao'].map(classificar_data).value_counts())
@@ -135,44 +167,20 @@ def rodar_auditoria():
         if total_anomalias > 0:
             print(f"  - Coluna '{col}': {contagem}")
 
-    # 7. Verificação de acentos quebrados (Mojibake tipo 'Ã') sem regex
+
+    # 7. Acentos quebrados (Mojibake)
     print("\n[7] VERIFICAÇÃO DE ACENTOS QUEBRADOS (ex: 'Ã') POR COLUNA:")
     for nome_arq, df in tabelas.items():
         if df.empty:
             continue
-        print(f"  - {nome_arq}.csv:")
         for col in df.columns:
-            qtd_quebrados = 0
-            for val in df[col]:
-                v = str(val)
-                if "Ã" in v:
-                    qtd_quebrados += 1
-            if qtd_quebrados > 0:
-                print(f"      * Coluna '{col}': {qtd_quebrados} registros com acento quebrado")
+            qtd = sum(1 for val in df[col] if "Ã" in str(val))
+            if qtd > 0:
+                print(f"  - {nome_arq}.csv -> Coluna '{col}': {qtd} registros com acento quebrado")
 
-    # 8. Verificação de cronologia estritamente sobre o resultados.csv
-    print("\n[8] CRONOLOGIA: data_resultado x data_publicacao (Universo Total):")
-    if not resultados.empty and 'data_resultado' in resultados.columns and not compras.empty:
-        # Garante 1 para 1 no merge por PNCP
-        compras_unicas = compras.drop_duplicates(subset=['numero_controle_pncp'])
-        
-        # Merge completo
-        merged = resultados.merge(
-            compras_unicas[['numero_controle_pncp', 'data_publicacao']], 
-            on='numero_controle_pncp', 
-            how='inner'
-        )
-        
-        pub_dt = pd.to_datetime(merged['data_publicacao'], errors='coerce')
-        res_dt = pd.to_datetime(merged['data_resultado'], errors='coerce')
-        
-        com_ambas = res_dt.notna() & pub_dt.notna()
-        anteriores = (res_dt < pub_dt) & com_ambas
-        
-        
-        print(f"  - Total de linhas cruzadas: {len(merged)}")
-        print(f"  - Homologação ANTERIOR à publicação: {anteriores.sum()}")
- 
+    # 8. Cronologia oficial
+    secao_cronologia(compras, resultados)
+
 
 if __name__ == "__main__":
     rodar_auditoria()

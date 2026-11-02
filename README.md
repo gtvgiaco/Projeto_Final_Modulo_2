@@ -106,6 +106,7 @@ Para responder as perguntas do item 7.4 do enunciado, usamos o auditoria.py . Ab
 
 - Existe data_resultado anterior a data_publicacao?
 
+
 ![diag5](./docs/image/diag5.png)
 
 
