@@ -171,8 +171,7 @@ Etapas:
 
 **Modelo Star Schema**
 
-![alt text](star_schema-1.png)
-
+![star_schema](./docs/image/star_schema.png)
 
 ## 9. Power BI
 
