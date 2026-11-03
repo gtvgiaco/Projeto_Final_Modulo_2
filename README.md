@@ -4,6 +4,7 @@
 ## Desenvolvimento de esteira analítica para analisar dados do Portal Nacional de Contratações Públicas (PNCP)
 
 #### Aluno: Gustavo Giacomini
+#### Link do Vídeo: [https://drive.google.com/file/d/1VsOoJaWhA5qdn9qTIkBWA8u1Pwr2lOYS/view?usp=drive_link]
 
 ## 1. Contexto do Problema
 

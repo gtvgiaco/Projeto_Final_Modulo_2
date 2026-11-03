@@ -1,5 +1,5 @@
 
-/*Tema
+/*
 Pergunta
 1
 Economia global do Poder Público
